@@ -17,12 +17,8 @@
 
 package ow.tool.util.toolframework;
 
-import java.io.Serializable;
-import java.net.UnknownHostException;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
-
 import ow.dht.DHT;
 import ow.dht.DHTConfiguration;
 import ow.dht.DHTFactory;
@@ -31,11 +27,14 @@ import ow.messaging.util.MessagingUtility;
 import ow.stat.StatConfiguration;
 import ow.stat.StatFactory;
 
+import java.io.Serializable;
+import java.net.UnknownHostException;
+
 /**
  * A base class of DHT-based tools.
  */
 public abstract class AbstractDHTBasedTool<V extends Serializable> {
-	private final int MAX_ID_SIZE = 20;
+	private final int MAX_ID_SIZE = 5;
 
 	protected abstract void usage(String command);
 

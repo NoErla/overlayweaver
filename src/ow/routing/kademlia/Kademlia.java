@@ -17,13 +17,6 @@
 
 package ow.routing.kademlia;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.InvalidAlgorithmParameterException;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.logging.Level;
-
 import ow.id.ID;
 import ow.id.IDAddressPair;
 import ow.id.comparator.AlgoBasedTowardTargetIDAddrComparator;
@@ -32,6 +25,13 @@ import ow.routing.RoutingContext;
 import ow.routing.RoutingService;
 import ow.routing.impl.AbstractRoutingAlgorithm;
 import ow.util.HTMLUtil;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.InvalidAlgorithmParameterException;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.logging.Level;
 
 /**
  * A RoutingAlgorithm implementing Kademlia.

@@ -33,7 +33,9 @@ public class RoutingAlgorithmFactory {
 		ow.routing.linearwalker.LinearWalkerProvider.class,	// "LinearWalker"
 		ow.routing.pastry.PastryProvider.class,				// "Pastry"
 		ow.routing.tapestry.TapestryProvider.class,			// "Tapestry"
-		ow.routing.frtchord.FRTChordProvider.class			// "FRT-Chord"
+		ow.routing.frtchord.FRTChordProvider.class,			// "FRT-Chord"
+		ow.routing.dlg.DlgProvider.class					//"DLG"
+
 	};
 
 	private final static Map<String,RoutingAlgorithmProvider> providerTable;

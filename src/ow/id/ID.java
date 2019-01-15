@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  * An ID with arbitrary length.
  * Note that internal representation is big endian.
  */
-public final class ID implements java.io.Externalizable, Comparable<ID> {
+public final class  ID implements java.io.Externalizable, Comparable<ID> {
 	public final static boolean USE_INT_ARRAY = false;
 
 	private final static Logger logger = Logger.getLogger("id");

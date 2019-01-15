@@ -16,15 +16,15 @@
 
 package ow.tool.emulator.commands;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-
 import ow.tool.emulator.EmulatorContext;
 import ow.tool.util.shellframework.Command;
 import ow.tool.util.shellframework.Shell;
 import ow.tool.util.shellframework.ShellContext;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 
 public final class IncludeCommand implements Command<EmulatorContext> {
 	private final static String[] NAMES = {"include"};

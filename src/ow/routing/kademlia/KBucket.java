@@ -17,15 +17,10 @@
 
 package ow.routing.kademlia;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
 import ow.id.IDAddressPair;
 import ow.routing.RoutingAlgorithm;
+
+import java.util.*;
 
 /**
  * k-bucket for Kademlia.
