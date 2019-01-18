@@ -17,14 +17,6 @@
 
 package ow.routing.linearwalker;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.InvalidAlgorithmParameterException;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.SortedSet;
-import java.util.logging.Level;
-
 import ow.id.ID;
 import ow.id.IDAddressPair;
 import ow.id.comparator.AlgoBasedFromSrcIDComparator;
@@ -39,6 +31,14 @@ import ow.routing.linearwalker.message.RepSuccAndPredMessage;
 import ow.routing.linearwalker.message.ReqSuccAndPredMessage;
 import ow.util.HTMLUtil;
 import ow.util.Timer;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.InvalidAlgorithmParameterException;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.SortedSet;
+import java.util.logging.Level;
 
 /**
  * An implementation of Consistent Hashing which tracks nodes linearly.
@@ -165,6 +165,7 @@ public class LinearWalker extends AbstractRoutingAlgorithm {
 
 	public IDAddressPair[] nextHopCandidates(ID target, ID lastHop, boolean joining,
 			int maxNumber, RoutingContext cxt) {	// find_predecessor()
+
 		LinearWalkerRoutingContext context = (LinearWalkerRoutingContext)cxt;
 
 		// judge whether the routing is in last phase

@@ -35,16 +35,17 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
     @Override
     public BigInteger distance(ID to, ID from) {
-
         String toString = utils.IdDeleteZero(to);
+
         String fromString = utils.IdDeleteZero(from);
+
         //first subpath
         ;
 
         //second subpath
         int to_length = toString.length();
         int from_length = fromString.length();
-        int i = 0;
+        int i=0;
         for(;;i++){
             if(toString.length() == 0 || fromString.length() == 0){
                 break;
@@ -62,9 +63,15 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
     @Override
     public IDAddressPair[] nextHopCandidates(ID target, ID lastHop, boolean joining, int maxNumber, RoutingContext context) {
+        System.out.println("nextHopCandidates");
         String targetStr = utils.IdDeleteZero(target);
-        IDAddressPair[] results = new IDAddressPair[0];
+        IDAddressPair[] results = new IDAddressPair[1];
         String suffix = "";
+        if(joining){
+
+            results[0] = this.selfIDAddress;
+            return results;
+        }
         if(this.findCommon(targetStr).length() > 0) {
             suffix = targetStr.substring(this.findCommon(targetStr).length() - 1, this.findCommon(targetStr).length());
         } else {
@@ -77,6 +84,7 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
     @Override
     public IDAddressPair[] responsibleNodeCandidates(ID target, int maxNumber) {
+        System.out.println("responsibleNodeCandidates");
         return new IDAddressPair[0];
     }
 
@@ -128,6 +136,7 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
     @Override
     public String getRoutingTableString(int verboseLevel) {
+        System.out.println("getRoutingTableString");
         return null;
     }
 
