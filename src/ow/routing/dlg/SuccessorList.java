@@ -37,8 +37,7 @@ public final class SuccessorList {
 	public SuccessorList(Dlg algo, IDAddressPair selfIDAddress) {
 		this.algorithm = algo;
 		this.selfIDAddress = selfIDAddress;
-		this.list = new TreeSet<IDAddressPair>(
-				new AlgoBasedFromSrcIDAddrPairComparator(algo, selfIDAddress.getID()));
+		this.list = new TreeSet<IDAddressPair>(new DlgComparator());
 
 		// initialize
 		this.clear();
@@ -53,8 +52,7 @@ public final class SuccessorList {
 		if (elem == null) return;
 
 		synchronized (this.list) {
-
-			this.list.add(elem);
+			boolean added = this.list.add(elem);
 
 		}
 	}
@@ -156,6 +154,13 @@ public final class SuccessorList {
 		}
 
 		return ret;
+	}
+
+	public String toString(){
+		for(IDAddressPair p : list){
+			System.out.println(p.getID());
+		}
+		return "";
 	}
 /**
 	public SortedSet<IDAddressPair> closestTo(ID target, boolean includeSelf) {

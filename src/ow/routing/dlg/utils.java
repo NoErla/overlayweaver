@@ -8,6 +8,14 @@ import ow.id.ID;
 public class utils {
 
     static public String IdDeleteZero(ID id){
-        return id.toString().replace("0","");
+        String string = id.toString().replace("0","");
+        if(string.length() == 0)
+            return "0";
+        else
+            return string;
+    }
+
+    static public Integer IdtoInt(ID id){
+        return Integer.valueOf(IdDeleteZero(id));
     }
 }
