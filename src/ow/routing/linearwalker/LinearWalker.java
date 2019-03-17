@@ -239,6 +239,7 @@ public class LinearWalker extends AbstractRoutingAlgorithm {
 	}
 
 	public void join(IDAddressPair[] neighbors /* are to be successor list */) {
+		System.out.println("join");
 		this.successorList.addAll(neighbors);
 
 		if (this.config.getAggressiveJoiningMode()) {

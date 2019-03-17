@@ -19,6 +19,8 @@ package ow.id;
 
 import ow.messaging.MessagingAddress;
 
+import java.nio.ByteBuffer;
+
 /**
  * A pair of {@link ow.id.ID ID} and {@link ow.messaging.MessagingAddress MessagingAddress}.
  */
@@ -100,6 +102,14 @@ public class IDAddressPair implements MessagingAddress {
 //			canonicalizingMap.put(this, this);
 //		}
 
+		return old;
+	}
+
+	//myc
+	public ID setID(Integer id){
+		ID old = this.id;
+
+		this.id = new ID(ByteBuffer.allocate(4).putInt(id).array(), 16);
 		return old;
 	}
 

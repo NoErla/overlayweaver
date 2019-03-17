@@ -1,34 +1,49 @@
 package ow.routing.dlg;
 
+import org.apache.commons.collections4.map.MultiValueMap;
 import ow.id.ID;
 import ow.id.IDAddressPair;
+import ow.messaging.Message;
+import ow.messaging.MessageHandler;
 import ow.routing.RoutingAlgorithmConfiguration;
 import ow.routing.RoutingContext;
 import ow.routing.RoutingService;
 import ow.routing.impl.AbstractRoutingAlgorithm;
+import ow.routing.dlg.message.RepSuccAndPredMessage;
+import ow.routing.dlg.message.ReqSuccAndPredMessage;
 
+import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Created by muyuchen on 2018/11/12.
  */
 public class Dlg extends AbstractRoutingAlgorithm {
 
+    protected DlgConfiguration config;
+
     // routing table
     protected SuccessorList successorList;//outneighbor
     protected PredecessorList predecessorList;//inneighbor
     //static Integer num = 0;
     //private Integer label;
-    static BigInteger distan = new BigInteger("0");
+    protected ArrayList weight;//
 
 
-    public Dlg(RoutingAlgorithmConfiguration config, RoutingService routingSvc) {
+    protected Dlg(RoutingAlgorithmConfiguration config, RoutingService routingSvc) {
         super(config, routingSvc);
 
         // initialize routing table
         this.successorList = new SuccessorList(this, selfIDAddress);
         this.predecessorList = new PredecessorList(this,selfIDAddress);
         //this.label = this.num ++;
+        this.weight = new ArrayList();
+
+
+        this.config = (DlgConfiguration)config;
     }
 
 
@@ -112,6 +127,39 @@ public class Dlg extends AbstractRoutingAlgorithm {
     public void join(IDAddressPair joiningNode, IDAddressPair lastHop, boolean isFinalNode) {
         this.successorList.add(joiningNode);
         System.out.println("join2");
+
+        String selfId = utils.IdDeleteZero(this.selfIDAddress.getID());
+
+        MultiValueMap multiValueMap = new MultiValueMap();
+
+        for(IDAddressPair successor:this.successorList.toArray()){
+            //需要记录outnei的分组
+            String newNodeId = creareNewNodeId(selfId, utils.IdDeleteZero(successor.getID()));
+            multiValueMap.put(newNodeId,utils.IdDeleteZero(successor.getID()) );
+        }
+        MultiValueMap newNodeMap = union(multiValueMap);
+        String[] keySet = (String[]) newNodeMap.keySet().toArray();
+
+
+        //新建id的方式
+        this.selfIDAddress.setID(new ID(keySet[0].getBytes(), 16));
+        this.weight = (ArrayList) newNodeMap.get(keySet[0]);
+        //joiningNode.setID(new ID(newNodeMap[1].getBytes(), 16));//joiningNode的weight无法获得 msg
+
+        Message msg = new ReqSuccAndPredMessage();
+        try{
+            sender.sendAndReceive(joiningNode.getAddress(), msg);
+        }catch (IOException e){
+            logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SUCC_AND_PRED msg.", e);
+        }
+        // parse the reply
+        //IDAddressPair[] succs = ((RepSuccAndPredMessage)msg).successors;
+        //IDAddressPair pred = ((RepSuccAndPredMessage)msg).lastPredecessor;
+
+        // update routing table
+        //this.successorList.addAll(succs);
+        //this.successorList.add(pred);
+
     }
 
     @Override
@@ -183,5 +231,74 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
         }
 
+
+    }
+
+    public String creareNewNodeId(String ori, String pre){
+        int oriLength = ori.length();
+        int preLength = pre.length();
+        String str = ori.substring(preLength - oriLength, preLength - oriLength + 1);
+        return str + pre;
+    }
+    //合并分组
+    public MultiValueMap union(MultiValueMap mvm){
+        int size = mvm.size();
+        int half = (int)Math.rint(size / 2);
+        MultiValueMap newMVM = new MultiValueMap();
+        Set<String> keySet = mvm.keySet();
+        int count = 0;
+        String str1 = "";
+        String str2 = "";
+        for(String str : keySet){
+            if(count == 0){
+                str1 = str;
+            }
+            if(count == half){
+                str2 = str;
+            }
+            if(count < half){
+                newMVM.put(str1, mvm.get(str));
+            }else{
+                newMVM.put(str2, mvm.get(str));
+            }
+            count++;
+        }
+        return newMVM;
+
+    }
+
+    // MessageHandler for REQ_SUCC_AND_PRED
+    public class ReqSuccAndPredMessageHandler implements MessageHandler {
+        public Message process(Message msg) {
+            Dlg.this.touch((IDAddressPair)msg.getSource());	// notify the algorithm
+
+            IDAddressPair[] lastSuccessors = Dlg.this.successorList.toArrayExcludingSelf();
+            IDAddressPair lastPredecessor = Dlg.this.predecessorList.first();
+
+            // update successor and predecessor
+            IDAddressPair msgSrc = (IDAddressPair)msg.getSource();
+
+            Dlg.this.successorList.add(msgSrc);
+            // try to add the predecessor to successor list
+
+            synchronized (Dlg.this) {
+                if (config.getAggressiveJoiningMode()) {
+                    Dlg.this.predecessor = msgSrc;
+                }
+                else {
+                    // check the received predecessor
+                    if (msgSrc.getID().equals(predecessorList.first().getID()) ||	// just perf optimization
+                            towardSelfComparator.compare(predecessorList.first().getID(), msgSrc.getID()) > 0) {
+                        Dlg.this.predecessor = msgSrc;
+                    }
+                }
+            }
+
+            // reply
+            Message repMsg = new RepSuccAndPredMessage(
+                    lastSuccessors, lastPredecessor);
+
+            return repMsg;
+        }
     }
 }

@@ -63,7 +63,8 @@ public final class  ID implements java.io.Externalizable, Comparable<ID> {
 	 * @param id ID in big endian.
 	 * @param size ID size in byte.
 	 */
-	private ID(byte[] id, int size) {
+	//private ID(byte[] id, int size) {
+	public ID(byte[] id, int size) {
 		if (size > MAX_SIZE) {
 			logger.log(Level.WARNING, "size set as " + MAX_SIZE + " even though the give size is " + size + ".");
 			size = MAX_SIZE;
