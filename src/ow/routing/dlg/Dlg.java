@@ -171,7 +171,19 @@ public class Dlg extends AbstractRoutingAlgorithm {
     @Override
     public void forget(IDAddressPair node) {
         System.out.println("forget");
+        Message msg = new ReqSuccAndPredMessage();//delete message
+        try{
+            sender.sendAndReceive(node.getAddress(), msg);
+        }catch (IOException e){
+            logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SUCC_AND_PRED msg.", e);
+        }
+        IDAddressPair[] succs = ((RepSuccAndPredMessage)msg).successors;
+        IDAddressPair pred = ((RepSuccAndPredMessage)msg).lastPredecessor;
+        this.successorList.addAll(succs);
+        this.predecessorList.add(pred);
+        //this.weight.addAll()
     }
+
 
     @Override
     public boolean toReplace(IDAddressPair existingEntry, IDAddressPair newEntry) {
