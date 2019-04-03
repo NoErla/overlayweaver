@@ -1,0 +1,65 @@
+##########
+# start
+##########
+
+
+class ow.tool.dhtshell.Main
+arg -m emu0 -a Chord -r Iterative -i 0000000000
+schedule 0 invoke
+timeoffset 2000
+
+##########
+# invoke
+##########
+
+
+##########
+# firstnode
+##########
+
+class ow.tool.dhtshell.Main
+arg -m emu1 -a Chord -r Iterative -i 0000000001
+schedule 0 invoke
+timeoffset 2020
+
+##########
+# othernodes
+##########
+
+arg -m emu2 -a Chord -r Iterative -i 0000000002
+schedule 0 invoke
+timeoffset 3030
+
+arg -m emu3 -a Chord -r Iterative -i 0000000003
+schedule 0 invoke
+timeoffset 4040
+
+##########
+# join
+##########
+
+schedule 0 controls 2 init emu0
+schedule 50 controls 3 init emu0
+timeoffset 9030
+timeoffset 14030
+
+##########
+# put
+##########
+
+schedule 50 control 2 put key1 value1
+schedule 95 control 2 status
+
+timeoffset 19035
+
+##########
+# get
+##########
+
+
+schedule 50 control 3 get key1
+schedule 95 control 3 status
+schedule 50 control 1 get key1
+schedule 95 control 1 status
+
+timeoffset 24040
