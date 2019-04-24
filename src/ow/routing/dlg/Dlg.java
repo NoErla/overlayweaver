@@ -8,14 +8,17 @@ import ow.messaging.MessageHandler;
 import ow.routing.RoutingAlgorithmConfiguration;
 import ow.routing.RoutingContext;
 import ow.routing.RoutingService;
+import ow.routing.dlg.message.ReqSplitMessage;
 import ow.routing.impl.AbstractRoutingAlgorithm;
 import ow.routing.dlg.message.RepSuccAndPredMessage;
 import ow.routing.dlg.message.ReqSuccAndPredMessage;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 /**
@@ -44,6 +47,8 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
 
         this.config = (DlgConfiguration)config;
+
+        this.prepareHandlers();
     }
 
 
@@ -124,10 +129,67 @@ public class Dlg extends AbstractRoutingAlgorithm {
     }
 
     @Override
+    //顺序
     public void join(IDAddressPair joiningNode, IDAddressPair lastHop, boolean isFinalNode) {
-        this.successorList.add(joiningNode);
-        System.out.println("join2");
 
+        System.out.println("join2");
+        Integer joiningNodeId = utils.IdtoInt(joiningNode.getID());
+        //异常
+        if(this.selfIDAddress.getID().equals(joiningNode.getID()))
+            return;
+        //初始图
+        if(joiningNodeId < 10){
+            this.predecessorList.add(joiningNode);
+            Message msg = new ReqSuccAndPredMessage();
+            try{
+                RepSuccAndPredMessage reply= (RepSuccAndPredMessage)sender.sendAndReceive(joiningNode.getAddress(), msg);
+                if(reply != null){
+                    this.selfIDAddress.setID(new ID(reply.newId.getBytes(), 20));
+                }
+            }catch (IOException e){
+                logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SUCC_AND_PRED msg.", e);
+            }
+        }else{
+            String selfId = utils.IdDeleteZero(this.selfIDAddress.getID());
+
+            MultiValueMap multiValueMap = new MultiValueMap();
+
+            for(IDAddressPair successor:this.successorList.toArray()){
+                //需要记录outnei的分组
+                String newNodeId = createNewNodeId(selfId, utils.IdDeleteZero(successor.getID()));
+                multiValueMap.put(newNodeId, newNodeId);
+            }
+            MultiValueMap newNodeMap = union(multiValueMap);
+            //object[] to string[]
+            String[] keySet = new String[newNodeMap.keySet().size()];
+            newNodeMap.keySet().toArray(keySet);
+
+
+            //新建id的方式
+            //this.selfIDAddress.setID(ID.getID(keySet[0].getBytes(), 16));
+            //十进制转十六进制
+            BigInteger hex = new BigInteger(keySet[0], 16);
+            this.selfIDAddress.setID(ID.getID(hex, 16));
+            this.weight = (ArrayList) newNodeMap.get(keySet[0]);
+            IDAddressPair[] divide = this.predecessorList.divide(keySet);
+            //this.predecessorList.remove(this.predecessorList.first());
+            //joiningNode.setID(new ID(newNodeMap[1].getBytes(), 16));//joiningNode的weight无法获得 msg
+
+            Message msg = new ReqSuccAndPredMessage();
+
+            ((ReqSuccAndPredMessage) msg).successors = this.successorList.toArrayExcludingSelf();
+            //PredecessorList newPred = new PredecessorList(this, selfIDAddress);
+            ((ReqSuccAndPredMessage) msg).predecessors = divide;
+            //((ReqSuccAndPredMessage) msg).predecessors = newPred.toArrayExcludingSelf();
+            ((ReqSuccAndPredMessage) msg).newID = keySet[1];
+
+            try{
+                sender.sendAndReceive(joiningNode.getAddress(), msg);
+            }catch (IOException e){
+                logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SPLIT msg.", e);
+            }
+        }
+        /*
         String selfId = utils.IdDeleteZero(this.selfIDAddress.getID());
 
         MultiValueMap multiValueMap = new MultiValueMap();
@@ -145,13 +207,8 @@ public class Dlg extends AbstractRoutingAlgorithm {
         this.selfIDAddress.setID(new ID(keySet[0].getBytes(), 16));
         this.weight = (ArrayList) newNodeMap.get(keySet[0]);
         //joiningNode.setID(new ID(newNodeMap[1].getBytes(), 16));//joiningNode的weight无法获得 msg
+        */
 
-        Message msg = new ReqSuccAndPredMessage();
-        try{
-            sender.sendAndReceive(joiningNode.getAddress(), msg);
-        }catch (IOException e){
-            logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SUCC_AND_PRED msg.", e);
-        }
         // parse the reply
         //IDAddressPair[] succs = ((RepSuccAndPredMessage)msg).successors;
         //IDAddressPair pred = ((RepSuccAndPredMessage)msg).lastPredecessor;
@@ -160,11 +217,12 @@ public class Dlg extends AbstractRoutingAlgorithm {
         //this.successorList.addAll(succs);
         //this.successorList.add(pred);
 
+
     }
 
     @Override
     public void touch(IDAddressPair from) {
-        this.successorList.add(from);
+        //this.successorList.add(from);
         System.out.println("touch");
     }
 
@@ -178,9 +236,9 @@ public class Dlg extends AbstractRoutingAlgorithm {
             logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SUCC_AND_PRED msg.", e);
         }
         IDAddressPair[] succs = ((RepSuccAndPredMessage)msg).successors;
-        IDAddressPair pred = ((RepSuccAndPredMessage)msg).lastPredecessor;
+        IDAddressPair[] pred = ((RepSuccAndPredMessage)msg).predecessors;
         this.successorList.addAll(succs);
-        this.predecessorList.add(pred);
+        this.predecessorList.addAll(pred);
         //this.weight.addAll()
     }
 
@@ -212,8 +270,11 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
     @Override
     public String getRoutingTableString(int verboseLevel) {
+        System.out.println("outneighbours:");
         System.out.println(this.successorList.toString());
-        System.out.println("getRoutingTableString");
+        System.out.println("inneighbours");
+        System.out.println(this.predecessorList.toString());
+        System.out.println(this.selfIDAddress.getID().toString());
         return "";
     }
 
@@ -246,11 +307,11 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
     }
 
-    public String creareNewNodeId(String ori, String pre){
+    public String createNewNodeId(String ori, String pre){
         int oriLength = ori.length();
         int preLength = pre.length();
         String str = ori.substring(preLength - oriLength, preLength - oriLength + 1);
-        return str + pre;
+        return pre + str;
     }
     //合并分组
     public MultiValueMap union(MultiValueMap mvm){
@@ -279,38 +340,69 @@ public class Dlg extends AbstractRoutingAlgorithm {
 
     }
 
+    // REQ_SUCC_AND_PRED
+    protected void prepareHandlers() {
+        this.prepareHandlers(false);
+    }
+
+    protected void prepareHandlers(boolean ignoreReqSuccAndPredMessage) {
+        MessageHandler handler;
+
+        // REQ_SUCC_AND_PRED
+        // first half of init_finger_table(n')
+        if (!ignoreReqSuccAndPredMessage) {
+            handler = new ReqSuccAndPredMessageHandler();
+            this.runtime.addMessageHandler(ReqSuccAndPredMessage.class, handler);
+        }
+    }
+
     // MessageHandler for REQ_SUCC_AND_PRED
     public class ReqSuccAndPredMessageHandler implements MessageHandler {
         public Message process(Message msg) {
-            Dlg.this.touch((IDAddressPair)msg.getSource());	// notify the algorithm
+            ReqSuccAndPredMessage message = (ReqSuccAndPredMessage)msg;
 
-            IDAddressPair[] lastSuccessors = Dlg.this.successorList.toArrayExcludingSelf();
-            IDAddressPair lastPredecessor = Dlg.this.predecessorList.first();
+            Dlg.this.touch((IDAddressPair)message.getSource());	// notify the algorithm
 
             // update successor and predecessor
-            IDAddressPair msgSrc = (IDAddressPair)msg.getSource();
-
-            Dlg.this.successorList.add(msgSrc);
-            // try to add the predecessor to successor list
-
-            synchronized (Dlg.this) {
-                if (config.getAggressiveJoiningMode()) {
-                    Dlg.this.predecessor = msgSrc;
+            IDAddressPair msgSrc = (IDAddressPair)message.getSource();
+            if(message.newID == null ){
+                try{
+                    Dlg.this.successorList.add(msgSrc);
+                }catch (Exception e){
+                    System.out.println(e);
                 }
-                else {
-                    // check the received predecessor
-                    if (msgSrc.getID().equals(predecessorList.first().getID()) ||	// just perf optimization
-                            towardSelfComparator.compare(predecessorList.first().getID(), msgSrc.getID()) > 0) {
-                        Dlg.this.predecessor = msgSrc;
-                    }
-                }
+                return null;
+            }else {
+                BigInteger hex = new BigInteger(message.newID, 16);
+                Dlg.this.selfIDAddress.setID(ID.getID(hex, 16));
+                Dlg.this.successorList.addAll(message.successors);
+                Dlg.this.predecessorList.addAll(message.predecessors);
+                return null;
             }
 
-            // reply
-            Message repMsg = new RepSuccAndPredMessage(
-                    lastSuccessors, lastPredecessor);
-
-            return repMsg;
         }
     }
+
+    public static byte[] hexStringToBytes(String hexString, int size) {
+        if (hexString == null || hexString.equals("")) {
+            return null;
+        }
+        int length = hexString.length();
+        char[] hexChars = hexString.toCharArray();
+        byte[] d = new byte[size];
+        int i = 0;
+        while(i != length){
+            d[size - i - 1] = (byte)Integer.parseInt(String.valueOf(hexChars[length - i - 1 ]));
+            i++;
+        }
+        return d;
+    }
+
+
+
+
+
 }
+
+
+

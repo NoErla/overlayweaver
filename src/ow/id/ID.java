@@ -65,7 +65,7 @@ public final class  ID implements java.io.Externalizable, Comparable<ID> {
 	 */
 	//private ID(byte[] id, int size) {
 	public ID(byte[] id, int size) {
-		if (size > MAX_SIZE) {
+ 		if (size > MAX_SIZE) {
 			logger.log(Level.WARNING, "size set as " + MAX_SIZE + " even though the give size is " + size + ".");
 			size = MAX_SIZE;
 		}
@@ -118,14 +118,21 @@ public final class  ID implements java.io.Externalizable, Comparable<ID> {
 //		}
 //		else {
 			int pos = 24;
-			for (int i = 0; i < this.size; i++) {
-				hashedvalue ^= (this.value[i] << pos);
-
-				if (pos <= 0)
-					pos = 24;
-				else
-					pos -= 8;
+			/*
+			try{
+				for (int i = 0; i < this.size; i++) {
+					byte v = this.value[i];
+					hashedvalue ^= (v << pos);
+					if (pos <= 0)
+						pos = 24;
+					else
+						pos -= 8;
+				}
+			}catch (Exception e){
+				System.out.println(e);
 			}
+			*/
+
 //		}
 		this.hashCode = hashedvalue;
 	}

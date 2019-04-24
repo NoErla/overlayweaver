@@ -4,7 +4,7 @@
 
 
 class ow.tool.dhtshell.Main
-arg -m emu0 -a Chord -r Iterative -i 0000000000
+arg -m emu0 -a Dlg -r Iterative -i 0000000001
 schedule 0 invoke
 timeoffset 2000
 
@@ -18,7 +18,7 @@ timeoffset 2000
 ##########
 
 class ow.tool.dhtshell.Main
-arg -m emu1 -a Chord -r Iterative -i 0000000001
+arg -m emu1 -a Dlg -r Iterative -i 0000000002
 schedule 0 invoke
 timeoffset 2020
 
@@ -26,40 +26,34 @@ timeoffset 2020
 # othernodes
 ##########
 
-arg -m emu2 -a Chord -r Iterative -i 0000000002
+arg -m emu2 -a Dlg -r Iterative -i 0000000003
 schedule 0 invoke
 timeoffset 3030
 
-arg -m emu3 -a Chord -r Iterative -i 0000000003
+arg -m emu3 -a Dlg -r Iterative -i 0000000004
 schedule 0 invoke
 timeoffset 4040
+
+arg -m emu4 -a Dlg -r Iterative -i 0000000012
+schedule 0 invoke
+timeoffset 5050
 
 ##########
 # join
 ##########
 
+schedule 0 controls 0 init emu1
+schedule 0 controls 0 init emu2
+schedule 0 controls 1 init emu0
+schedule 0 controls 1 init emu2
 schedule 0 controls 2 init emu0
-schedule 50 controls 3 init emu0
-timeoffset 9030
-timeoffset 14030
+schedule 0 controls 2 init emu1
 
-##########
-# put
-##########
+schedule 2000 controls 4 init emu2
+schedule 5000 controls 2 status
+schedule 5000 controls 4 status
 
-schedule 50 control 2 put key1 value1
-schedule 95 control 2 status
-
-timeoffset 19035
-
-##########
-# get
-##########
+schedule 500000 controls 4 status
 
 
-schedule 50 control 3 get key1
-schedule 95 control 3 status
-schedule 50 control 1 get key1
-schedule 95 control 1 status
-
-timeoffset 24040
+timeoffset 90300

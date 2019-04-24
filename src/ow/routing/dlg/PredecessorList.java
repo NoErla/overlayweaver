@@ -38,8 +38,7 @@ public final class PredecessorList {
 	public PredecessorList(Dlg algo, IDAddressPair selfIDAddress) {
 		this.algorithm = algo;
 		this.selfIDAddress = selfIDAddress;
-		this.list = new TreeSet<IDAddressPair>(
-				new AlgoBasedFromSrcIDAddrPairComparator(algo, selfIDAddress.getID()));
+		this.list = new TreeSet<IDAddressPair>(new DlgComparator());
 
 		// initialize
 		this.clear();
@@ -47,15 +46,28 @@ public final class PredecessorList {
 
 	synchronized void clear() {
 		this.list.clear();
-		this.list.add(selfIDAddress);
+		//this.list.add(selfIDAddress);
 	}
 
 	public void add(IDAddressPair elem) {
+		if (elem == null || utils.IdtoInt(elem.getID()) == utils.IdtoInt(selfIDAddress.getID())) return;
+		synchronized (this.list) {
+			boolean added = this.list.add(elem);
 
+		}
 	}
 
 	public void addAll(IDAddressPair[] elems) {
+		if (elems == null) return;
 
+		synchronized (this.list) {
+			boolean added = false;
+
+			for (IDAddressPair elem: elems) {
+				this.list.add(elem);
+			}
+
+		}
 	}
 
 	public boolean contains(IDAddressPair elem) {
@@ -166,4 +178,31 @@ public final class PredecessorList {
 
 		return result;
 	}
+
+	public String toString(){
+		for(IDAddressPair p : list){
+			System.out.println(p.getID());
+		}
+		return "";
+	}
+
+	public IDAddressPair[] divide(String[] strings){
+		ID id = this.selfIDAddress.getID();
+		IDAddressPair[] divide = new IDAddressPair[strings[1].length()];
+		int i = 0;
+		IDAddressPair[] array = this.toArray();
+		String str = strings[1];
+
+		str = str.substring(0,str.length() - 1);
+		for(IDAddressPair p : array){
+			if(utils.IdDeleteZero(p.getID()).equals(str)){
+				divide[i] = p;
+				i++;
+				this.remove(p);
+			}
+
+		}
+		return divide;
+	}
+
 }

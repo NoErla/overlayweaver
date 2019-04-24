@@ -23,8 +23,8 @@ import java.awt.*;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-public final class ReqSuccAndPredMessage extends Message {
-	public final static String NAME = "REQ_SUCC_AND_PRD";
+public final class ReqSplitMessage extends Message {
+	public final static String NAME = "REQ_SPLIT";
 	public final static boolean TO_BE_REPORTED = true;
 	public final static Color COLOR = null;
 	// message members

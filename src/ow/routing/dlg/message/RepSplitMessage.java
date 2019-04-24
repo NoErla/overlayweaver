@@ -20,19 +20,34 @@ import ow.id.IDAddressPair;
 import ow.messaging.Message;
 
 import java.awt.*;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-public final class ReqSuccAndPredMessage extends Message {
-	public final static String NAME = "REQ_SUCC_AND_PRD";
+public final class RepSplitMessage extends Message {
+	public final static String NAME = "REP_SPLIT";
 	public final static boolean TO_BE_REPORTED = true;
 	public final static Color COLOR = null;
+
 	// message members
 	public IDAddressPair[] successors;
 	public IDAddressPair[] predecessors;
-	public String newID;
 
-	public void encodeContents(ObjectOutputStream oos) {}
+	public RepSplitMessage() { super(); }	// for Class#newInstance()
 
-	public void decodeContents(ObjectInputStream ois) {}
+	public RepSplitMessage(
+			IDAddressPair[] successors, IDAddressPair[] predecessors) {
+		this.successors = successors;
+		this.predecessors = predecessors;
+	}
+
+	public void encodeContents(ObjectOutputStream oos) throws IOException {
+		oos.writeObject(this.successors);
+		oos.writeObject(this.predecessors);
+	}
+
+	public void decodeContents(ObjectInputStream ois) throws IOException, ClassNotFoundException {
+		this.successors = (IDAddressPair[])ois.readObject();
+		this.predecessors = (IDAddressPair[])ois.readObject();
+	}
 }

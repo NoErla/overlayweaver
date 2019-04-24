@@ -31,23 +31,27 @@ public final class RepSuccAndPredMessage extends Message {
 
 	// message members
 	public IDAddressPair[] successors;
-	public IDAddressPair lastPredecessor;
+	public IDAddressPair[] predecessors;
+	public String newId;
 
 	public RepSuccAndPredMessage() { super(); }	// for Class#newInstance()
 
 	public RepSuccAndPredMessage(
-			IDAddressPair[] successors, IDAddressPair lastPredecessor) {
+			IDAddressPair[] successors, IDAddressPair[] predecessors, String newId) {
 		this.successors = successors;
-		this.lastPredecessor = lastPredecessor;
+		this.predecessors = predecessors;
+		this.newId = newId;
 	}
 
 	public void encodeContents(ObjectOutputStream oos) throws IOException {
 		oos.writeObject(this.successors);
-		oos.writeObject(this.lastPredecessor);
+		oos.writeObject(this.predecessors);
+		oos.writeObject(this.newId);
 	}
 
 	public void decodeContents(ObjectInputStream ois) throws IOException, ClassNotFoundException {
 		this.successors = (IDAddressPair[])ois.readObject();
-		this.lastPredecessor = (IDAddressPair)ois.readObject();
+		this.predecessors = (IDAddressPair[])ois.readObject();
+		this.newId = (String)ois.readObject();
 	}
 }

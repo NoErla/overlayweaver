@@ -45,11 +45,11 @@ public final class SuccessorList {
 
 	synchronized void clear() {
 		this.list.clear();
-		this.list.add(selfIDAddress);
+		//this.list.add(selfIDAddress);
 	}
 
 	public void add(IDAddressPair elem) {
-		if (elem == null) return;
+		if (elem == null || utils.IdtoInt(elem.getID()) == utils.IdtoInt(selfIDAddress.getID())) return;
 
 		synchronized (this.list) {
 			boolean added = this.list.add(elem);
@@ -58,7 +58,16 @@ public final class SuccessorList {
 	}
 
 	public void addAll(IDAddressPair[] elems) {
-		;
+		if (elems == null) return;
+
+		synchronized (this.list) {
+			boolean added = false;
+
+			for (IDAddressPair elem: elems) {
+				this.list.add(elem);
+			}
+
+		}
 	}
 
 	public boolean contains(IDAddressPair elem) {
