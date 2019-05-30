@@ -23,6 +23,7 @@ import ow.id.comparator.AlgoBasedFromSrcIDAddrPairComparator;
 import ow.id.comparator.AlgoBasedTowardTargetIDAddrComparator;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -64,7 +65,8 @@ public final class PredecessorList {
 			boolean added = false;
 
 			for (IDAddressPair elem: elems) {
-				this.list.add(elem);
+				if(elem != null)
+					this.list.add(elem);
 			}
 
 		}
@@ -82,9 +84,9 @@ public final class PredecessorList {
 		synchronized (this.list) {
 			ret = this.list.remove(elem); 
 
-			if (this.list.isEmpty()) {
-				this.list.add(selfIDAddress);
-			}
+			//if (this.list.isEmpty()) {
+			//	this.list.add(selfIDAddress);
+			//}
 		}
 
 		return ret;
@@ -186,22 +188,43 @@ public final class PredecessorList {
 		return "";
 	}
 
-	public IDAddressPair[] divide(String[] strings){
+	public IDAddressPair[] divide(String str){
 		ID id = this.selfIDAddress.getID();
-		IDAddressPair[] divide = new IDAddressPair[strings[1].length()];
+		IDAddressPair[] divide = new IDAddressPair[str.length()];
 		int i = 0;
 		IDAddressPair[] array = this.toArray();
-		String str = strings[1];
+
 
 		str = str.substring(0,str.length() - 1);
 		for(IDAddressPair p : array){
 			if(utils.IdDeleteZero(p.getID()).equals(str)){
 				divide[i] = p;
 				i++;
-				this.remove(p);
+				//this.remove(p);
 			}
 
 		}
+		return divide;
+	}
+
+	public ArrayList<IDAddressPair> divided(String[] strs){
+		ID id = this.selfIDAddress.getID();
+		ArrayList<IDAddressPair> divide = new ArrayList<>();
+		int i = 0;
+		IDAddressPair[] array = this.toArray();
+
+		for(String str : strs){
+			str = str.substring(0,str.length() - 1);
+			for(IDAddressPair p : array){
+				String preNodeID = utils.IdDeleteZero(p.getID());
+				if((preNodeID.substring(preNodeID.length() - 1)).equals(str)){
+					divide.add(p);
+					i++;
+					this.remove(p);
+				}
+			}
+		}
+
 		return divide;
 	}
 

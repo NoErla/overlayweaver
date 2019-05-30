@@ -16,9 +16,7 @@ import ow.routing.dlg.message.ReqSuccAndPredMessage;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.logging.Level;
 
 /**
@@ -44,6 +42,7 @@ public class Dlg extends AbstractRoutingAlgorithm {
         this.predecessorList = new PredecessorList(this,selfIDAddress);
         //this.label = this.num ++;
         this.weight = new ArrayList();
+        this.weight.add(utils.IdDeleteZero(selfIDAddress.getID()));
 
 
         this.config = (DlgConfiguration)config;
@@ -141,6 +140,7 @@ public class Dlg extends AbstractRoutingAlgorithm {
         if(joiningNodeId < 10){
             this.predecessorList.add(joiningNode);
             Message msg = new ReqSuccAndPredMessage();
+            ((ReqSuccAndPredMessage) msg).code = "INIT";
             try{
                 RepSuccAndPredMessage reply= (RepSuccAndPredMessage)sender.sendAndReceive(joiningNode.getAddress(), msg);
                 if(reply != null){
@@ -150,44 +150,144 @@ public class Dlg extends AbstractRoutingAlgorithm {
                 logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SUCC_AND_PRED msg.", e);
             }
         }else{
-            String selfId = utils.IdDeleteZero(this.selfIDAddress.getID());
-
-            MultiValueMap multiValueMap = new MultiValueMap();
-
-            for(IDAddressPair successor:this.successorList.toArray()){
-                //需要记录outnei的分组
-                String newNodeId = createNewNodeId(selfId, utils.IdDeleteZero(successor.getID()));
-                multiValueMap.put(newNodeId, newNodeId);
-            }
-            MultiValueMap newNodeMap = union(multiValueMap);
-            //object[] to string[]
-            String[] keySet = new String[newNodeMap.keySet().size()];
-            newNodeMap.keySet().toArray(keySet);
-
-
-            //新建id的方式
-            //this.selfIDAddress.setID(ID.getID(keySet[0].getBytes(), 16));
-            //十进制转十六进制
-            BigInteger hex = new BigInteger(keySet[0], 16);
-            this.selfIDAddress.setID(ID.getID(hex, 16));
-            this.weight = (ArrayList) newNodeMap.get(keySet[0]);
-            IDAddressPair[] divide = this.predecessorList.divide(keySet);
-            //this.predecessorList.remove(this.predecessorList.first());
-            //joiningNode.setID(new ID(newNodeMap[1].getBytes(), 16));//joiningNode的weight无法获得 msg
-
-            Message msg = new ReqSuccAndPredMessage();
-
-            ((ReqSuccAndPredMessage) msg).successors = this.successorList.toArrayExcludingSelf();
-            //PredecessorList newPred = new PredecessorList(this, selfIDAddress);
-            ((ReqSuccAndPredMessage) msg).predecessors = divide;
-            //((ReqSuccAndPredMessage) msg).predecessors = newPred.toArrayExcludingSelf();
-            ((ReqSuccAndPredMessage) msg).newID = keySet[1];
-
+            //孤立node
+            Message remove = new ReqSuccAndPredMessage();
+            ((ReqSuccAndPredMessage) remove).code = "REMOVE";
             try{
-                sender.sendAndReceive(joiningNode.getAddress(), msg);
+                for(IDAddressPair node : this.successorList.toArray()){
+                    sender.sendAndReceive(node.getAddress(), remove);
+                }
+                for(IDAddressPair node : this.predecessorList.toArray()){
+                    sender.sendAndReceive(node.getAddress(), remove);
+                }
             }catch (IOException e){
-                logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SPLIT msg.", e);
+                logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SUCC_AND_PRED msg.", e);
             }
+            String selfId = utils.IdDeleteZero(this.selfIDAddress.getID());
+            if(this.weight.size() == 1){
+                MultiValueMap multiValueMap = new MultiValueMap();
+
+                for(IDAddressPair successor:this.successorList.toArray()){
+                    //需要记录outnei的分组
+                    String newNodeId = createNewNodeId(selfId, utils.IdDeleteZero(successor.getID()));
+                    multiValueMap.put(newNodeId, newNodeId);
+                }
+                MultiValueMap newNodeMap = union(multiValueMap);
+                //object[] to string[]
+                String[] keySet = new String[newNodeMap.keySet().size()];
+                newNodeMap.keySet().toArray(keySet);
+
+                //keyset[1]的类型转化成string[]
+                ArrayList<String> a = (ArrayList<String>) newNodeMap.get(keySet[1]);
+                String[] keySet1 = new String[a.size()];
+                a.toArray(keySet1);
+
+
+
+
+
+                //十进制转十六进制
+                BigInteger hex = new BigInteger(keySet[0], 16);
+                this.selfIDAddress.setID(ID.getID(hex, 16));
+                this.weight = (ArrayList) newNodeMap.get(keySet[0]);
+
+
+                IDAddressPair[] selfPre = this.predecessorList.divide(keySet[0]);
+                ArrayList<IDAddressPair> newNodePre = this.predecessorList.divided(keySet1);
+                //this.predecessorList.remove(this.predecessorList.first());
+                //joiningNode.setID(new ID(newNodeMap[1].getBytes(), 16));//joiningNode的weight无法获得 msg
+
+                //旧node的邻居更新
+
+                Message add_out = new ReqSuccAndPredMessage();
+                ((ReqSuccAndPredMessage) add_out).newOutNode = selfIDAddress;
+                ((ReqSuccAndPredMessage) add_out).code = "ADD_OUT";
+                Message add_in = new ReqSuccAndPredMessage();
+                ((ReqSuccAndPredMessage) add_in).newInNode = selfIDAddress;
+                ((ReqSuccAndPredMessage) add_in).code = "ADD_IN";
+                try{
+                    for(IDAddressPair node : this.successorList.toArray()){
+                        sender.sendAndReceive(node.getAddress(), add_out);
+                    }
+                    for(IDAddressPair node : this.predecessorList.toArray()){
+                        sender.sendAndReceive(node.getAddress(), add_in);
+                    }
+                }catch (IOException e){
+                    logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SPLIT msg.", e);
+                }
+
+
+                //新node的状态改写
+                Message msg = new ReqSuccAndPredMessage();
+
+                ((ReqSuccAndPredMessage) msg).successors = this.successorList.toArrayExcludingSelf();
+                //PredecessorList newPred = new PredecessorList(this, selfIDAddress);
+                ((ReqSuccAndPredMessage) msg).predecessors = newNodePre.toArray(new IDAddressPair[newNodePre.size()]);
+                //((ReqSuccAndPredMessage) msg).predecessors = newPred.toArrayExcludingSelf();
+                ((ReqSuccAndPredMessage) msg).newID = keySet[1];
+                ((ReqSuccAndPredMessage) msg).newWeight = (ArrayList) newNodeMap.get(keySet[1]);
+                ((ReqSuccAndPredMessage) msg).code = "CHANGE_NODE_STATUS";
+
+                try{
+                    sender.sendAndReceive(joiningNode.getAddress(), msg);
+                }catch (IOException e){
+                    logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SPLIT msg.", e);
+                }
+            }else{
+                BigInteger hex = new BigInteger(this.weight.get(0).toString(), 16);
+                this.selfIDAddress.setID(ID.getID(hex, 16));
+                String newNodeId = this.weight.get(1).toString();
+                String[] newNode1 = new String[1];
+                newNode1[0] = newNodeId;
+                ArrayList<IDAddressPair> newNodePre = this.predecessorList.divided(newNode1);
+
+                this.weight.remove(this.weight.get(1));
+
+                //旧node的邻居更新
+
+                Message add_out = new ReqSuccAndPredMessage();
+                ((ReqSuccAndPredMessage) add_out).newOutNode = selfIDAddress;
+                ((ReqSuccAndPredMessage) add_out).code = "ADD_OUT";
+                Message add_in = new ReqSuccAndPredMessage();
+                ((ReqSuccAndPredMessage) add_in).newInNode = selfIDAddress;
+                ((ReqSuccAndPredMessage) add_in).code = "ADD_IN";
+                try{
+                    for(IDAddressPair node : this.successorList.toArray()){
+                        sender.sendAndReceive(node.getAddress(), add_out);
+                    }
+                    for(IDAddressPair node : this.predecessorList.toArray()){
+                        sender.sendAndReceive(node.getAddress(), add_in);
+                    }
+                }catch (IOException e){
+                    logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SPLIT msg.", e);
+                }
+
+
+                //新node的状态改写
+                Message msg = new ReqSuccAndPredMessage();
+
+                ((ReqSuccAndPredMessage) msg).successors = this.successorList.toArrayExcludingSelf();
+                //PredecessorList newPred = new PredecessorList(this, selfIDAddress);
+                ((ReqSuccAndPredMessage) msg).predecessors = newNodePre.toArray(new IDAddressPair[newNodePre.size()]);
+                //((ReqSuccAndPredMessage) msg).predecessors = newPred.toArrayExcludingSelf();
+                ((ReqSuccAndPredMessage) msg).newID = newNodeId;
+                try{
+                    ((ReqSuccAndPredMessage) msg).newWeight.add(newNodeId);
+                }catch (Exception e){
+                    System.out.println(e);
+                }
+                ((ReqSuccAndPredMessage) msg).code = "CHANGE_NODE_STATUS";
+
+                try{
+                    sender.sendAndReceive(joiningNode.getAddress(), msg);
+                }catch (IOException e){
+                    logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SPLIT msg.", e);
+                }
+            }
+
+
+
+
         }
         /*
         String selfId = utils.IdDeleteZero(this.selfIDAddress.getID());
@@ -274,7 +374,9 @@ public class Dlg extends AbstractRoutingAlgorithm {
         System.out.println(this.successorList.toString());
         System.out.println("inneighbours");
         System.out.println(this.predecessorList.toString());
-        System.out.println(this.selfIDAddress.getID().toString());
+        System.out.println("weight");
+        System.out.println(this.weight.toString());
+        //System.out.println(this.selfIDAddress.getID().toString());
         return "";
     }
 
@@ -310,15 +412,23 @@ public class Dlg extends AbstractRoutingAlgorithm {
     public String createNewNodeId(String ori, String pre){
         int oriLength = ori.length();
         int preLength = pre.length();
-        String str = ori.substring(preLength - oriLength, preLength - oriLength + 1);
-        return pre + str;
+
+        String str = pre.substring(preLength - oriLength, preLength - oriLength + 1);
+        return str + ori;
     }
     //合并分组
     public MultiValueMap union(MultiValueMap mvm){
         int size = mvm.size();
         int half = (int)Math.rint(size / 2);
         MultiValueMap newMVM = new MultiValueMap();
-        Set<String> keySet = mvm.keySet();
+        Set<String> keySet = new TreeSet<>(new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o2.compareTo(o1);//降序排列
+            }
+        });
+        keySet.addAll(mvm.keySet()) ;
+
         int count = 0;
         String str1 = "";
         String str2 = "";
@@ -330,9 +440,13 @@ public class Dlg extends AbstractRoutingAlgorithm {
                 str2 = str;
             }
             if(count < half){
-                newMVM.put(str1, mvm.get(str));
+                for(String a : (ArrayList<String >)mvm.get(str)){
+                    newMVM.put(str1, a);
+                }
             }else{
-                newMVM.put(str2, mvm.get(str));
+                for(String a : (ArrayList<String >)mvm.get(str)){
+                    newMVM.put(str2, a);
+                }
             }
             count++;
         }
@@ -359,28 +473,67 @@ public class Dlg extends AbstractRoutingAlgorithm {
     // MessageHandler for REQ_SUCC_AND_PRED
     public class ReqSuccAndPredMessageHandler implements MessageHandler {
         public Message process(Message msg) {
-            ReqSuccAndPredMessage message = (ReqSuccAndPredMessage)msg;
+            ReqSuccAndPredMessage message = (ReqSuccAndPredMessage) msg;
 
-            Dlg.this.touch((IDAddressPair)message.getSource());	// notify the algorithm
+            //Dlg.this.touch((IDAddressPair)message.getSource());	// notify the algorithm
 
             // update successor and predecessor
-            IDAddressPair msgSrc = (IDAddressPair)message.getSource();
-            if(message.newID == null ){
-                try{
+            IDAddressPair msgSrc = (IDAddressPair) message.getSource();
+            switch (message.code){
+                case "INIT" :
                     Dlg.this.successorList.add(msgSrc);
-                }catch (Exception e){
-                    System.out.println(e);
-                }
-                return null;
-            }else {
-                BigInteger hex = new BigInteger(message.newID, 16);
-                Dlg.this.selfIDAddress.setID(ID.getID(hex, 16));
-                Dlg.this.successorList.addAll(message.successors);
-                Dlg.this.predecessorList.addAll(message.predecessors);
-                return null;
+                    break;
+                case "REMOVE" :
+                    Dlg.this.successorList.remove(msgSrc);
+                    Dlg.this.predecessorList.remove(msgSrc);
+                    break;
+                case "CHANGE_NODE_STATUS" :
+                    BigInteger hex = new BigInteger(message.newID, 16);
+                    Dlg.this.selfIDAddress.setID(ID.getID(hex, 16));
+                    Dlg.this.successorList.addAll(message.successors);
+                    try{
+                        Dlg.this.predecessorList.addAll(message.predecessors);
+                    }catch (Exception e){
+                        System.out.println(e);
+                    }
+                    Dlg.this.predecessorList.addAll(message.predecessors);
+                    Dlg.this.weight = message.newWeight;
+
+
+                    Message add_out = new ReqSuccAndPredMessage();
+                    ((ReqSuccAndPredMessage) add_out).newOutNode = Dlg.this.selfIDAddress;
+                    ((ReqSuccAndPredMessage) add_out).code = "ADD_OUT";
+                    Message add_in = new ReqSuccAndPredMessage();
+                    ((ReqSuccAndPredMessage) add_in).newInNode = Dlg.this.selfIDAddress;
+                    ((ReqSuccAndPredMessage) add_in).code = "ADD_IN";
+                    try{
+                        for(IDAddressPair node : Dlg.this.successorList.toArray()){
+                            sender.sendAndReceive(node.getAddress(), add_out);
+                        }
+                        for(IDAddressPair node : Dlg.this.predecessorList.toArray()){
+                            sender.sendAndReceive(node.getAddress(), add_in);
+                        }
+                    }catch (IOException e){
+                        logger.log(Level.WARNING, "Failed to send/receive a REQ/REP_SPLIT msg.", e);
+                    }
+                    break;
+                case "ADD_OUT" :
+                    Dlg.this.predecessorList.add(message.newOutNode);
+                    break;
+                case "ADD_IN" :
+                    Dlg.this.successorList.add(message.newInNode);
+                    break;
+                case "CHANGE_IN" :
+                    Dlg.this.successorList.remove(message.deleteNode);
+                    Dlg.this.successorList.remove(message.deleteNode);
+                    break;
             }
 
+
+            return null;
+
         }
+
     }
 
     public static byte[] hexStringToBytes(String hexString, int size) {

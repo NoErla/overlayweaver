@@ -22,6 +22,7 @@ import ow.messaging.Message;
 import java.awt.*;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 
 public final class ReqSuccAndPredMessage extends Message {
 	public final static String NAME = "REQ_SUCC_AND_PRD";
@@ -31,6 +32,11 @@ public final class ReqSuccAndPredMessage extends Message {
 	public IDAddressPair[] successors;
 	public IDAddressPair[] predecessors;
 	public String newID;
+	public IDAddressPair newOutNode;
+	public IDAddressPair newInNode;
+	public IDAddressPair deleteNode;
+	public ArrayList<String> newWeight = new ArrayList<>();
+	public String code = "";
 
 	public void encodeContents(ObjectOutputStream oos) {}
 

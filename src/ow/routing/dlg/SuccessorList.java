@@ -22,6 +22,7 @@ import ow.id.IDAddressPair;
 import ow.id.comparator.AlgoBasedFromSrcIDAddrPairComparator;
 
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -80,7 +81,8 @@ public final class SuccessorList {
 		boolean ret;
 
 		synchronized (this.list) {
-			ret = this.list.remove(elem); 
+			ret = this.list.remove(elem);
+
 
 			if (this.list.isEmpty()) {
 				this.list.add(selfIDAddress);
